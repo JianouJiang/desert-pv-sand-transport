@@ -1,0 +1,7 @@
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+page_images/
+watcher_state.json
+.running_experiment.json
