@@ -196,3 +196,29 @@ Whether these are mandatory depends on Solar Energy’s submission route, but if
 `manuscript/layout_report.md` generated **2026-03-06 06:59 UTC** reports **32 pages**, while `pdfinfo manuscript/main.pdf` reports **31 pages**. The tool also continues to treat ~90%+ page “white%” as CRITICAL, which appears miscalibrated for papers. Use the report for *relative*/specific defect detection, not the headline CRITICAL count, until the metric is corrected.
 
 Updated score (presentation only, current compiled state): 7.5/10
+
+---
+
+## Addendum (2026-03-06, most recent): JUDGE\_004 + STATISTICIAN\_005 + updated front matter
+
+New reviews (`JUDGE_004_REVIEW.md`, `STATISTICIAN_005_REVIEW.md`) and the latest compiled artifacts (PDF regenerated **2026-03-06 07:45 UTC**) indicate additional substantive progress that affects presentation/completeness.
+
+### Newly resolved items (since the last editor addendum)
+
+- **CRediT statement added**: `\section*{CRediT authorship contribution statement}` now exists in `manuscript/main.tex`. This closes a front-matter completeness gap.
+- **`hyperref` warnings appear resolved**: the prior “Token not allowed in a PDF string” warnings no longer appear in the latest `manuscript/main.log` (based on grep check). Good submission polish improvement.
+- **Flow validation section added (qualitative)**: STAT\_005 reports a new Section 5.2 and a new wake-profile figure (`F3_validation_wake_profiles`). Even without a point-by-point wind-tunnel comparison, this materially improves narrative credibility and helps readers connect the Jensen/Venturi discussion to an observable wake structure.
+- **Case integrity/caveats improved**: STAT\_005 reports case\_01 integrity fixed and case\_34 now has an explicit convergence caveat where its extreme value is cited.
+
+### Remaining editor-facing issues (still worth fixing)
+
+1) **Highlights / Graphical abstract**  
+I still do not see `highlights` or `graphicalabstract` environments in `manuscript/main.tex`. Whether mandatory depends on Solar Energy’s workflow, but these are common Elsevier submission requirements; confirm and include if required.
+
+2) **Terminology: “shelter efficiency” vs negative values**  
+Even with the strong Section 7.3 discussion, the phrase “shelter efficiency” remains semantically awkward for a metric that is negative in many cases. Renaming to a sign-agnostic term would reduce reviewer friction and improve readability.
+
+3) **Page-count optics and tool mismatch**  
+`pdfinfo manuscript/main.pdf` now reports **34 pages**, while `manuscript/layout_report.md` reports **35 total pages** and **29 content pages excluding references** (references start at page 30). Content length looks comfortably within a 35-page (excl. refs) ceiling, but the persistent PDF-vs-report mismatch suggests the layout tool’s page counting should be checked before relying on it for hard limits.
+
+Updated score (presentation only, given the added CRediT + resolved hyperref warnings + wake-validation figure): 8/10
