@@ -128,3 +128,35 @@ I did not redesign figures, but several presentation issues are likely to draw r
 The Judge/Statistician note potential discrepancies in how convergence is described (initial vs final residuals, formal vs practical convergence). As an editor-facing action: ensure the manuscript’s convergence claims are **precise, consistent, and audit-friendly** (define which residual is monitored and how “converged” is counted), so the narrative matches the actual logs/data.
 
 Updated score (presentation only, given fixes observed): 7/10
+
+---
+
+## Addendum (2026-03-06, later): JUDGE\_003 + STATISTICIAN\_003 presentation implications
+
+New reviews (`JUDGE_003_REVIEW.md`, `STATISTICIAN_003_REVIEW.md`) reiterate several *paper-credibility* gaps. I do not judge the physics, but these issues directly affect what the manuscript/figures “say” to a reader and therefore fall under presentation clarity:
+
+### 1) Convergence language must match what SIMPLE actually checks
+
+- The manuscript currently states that “most cases reach the convergence criterion within 1700--2500 iterations.” If many cases remain **formally unconverged in SIMPLE’s `residualControl` sense** (initial residuals), that sentence will read as misleading even if final (linear-solver) residuals are small.
+- Editorial action: when the Worker updates results, ensure the paper clearly distinguishes **initial residuals** vs **final residuals**, and defines what “converged” means (and how many cases met it). Consider adding a one-line convergence summary (N/36) in the Results or an Appendix table.
+
+### 2) “Shelter efficiency” terminology becomes confusing when negative
+
+- STATISTICIAN\_003 reiterates the finding (from STATISTICIAN\_002) that many cases have **negative “shelter efficiency”** (i.e., net flux amplification). As-written, “efficiency” strongly implies a nonnegative benefit; the term risks confusing/irritating reviewers.
+- Editorial action: rename the metric to something sign-agnostic (e.g., “flux modification ratio” or “array flux amplification factor”), and rewrite captions/axis labels accordingly so a negative value is not presented as a paradox.
+
+### 3) Uncertainty must appear on at least one key figure (not only in text)
+
+- JUDGE\_003 and STATISTICIAN\_003 both emphasize that uncertainty is currently discussed only in prose. From a presentation standpoint, **a single shaded band** on the flagship deposition-vs-clearance plot (e.g., coefficient range for Owen’s C) dramatically improves trust and reduces “false precision” optics.
+
+### 4) Mechanism prose needed for the row-spacing trend
+
+- The new reviews highlight that the observed row-spacing effect has a counterintuitive direction (wider spacing reducing deposition via reduced Venturi amplification rather than “more shelter”). Even if scientifically correct, *not explaining it* reads like a reporting error.
+- Editorial action: add a short, plain-language mechanism paragraph in Discussion that reconciles the direction of the S-effect with the chosen metric definition and with the cubic dependence in the flux law.
+
+### 5) Validation messaging
+
+- Third reviewer round reiterates that a single obstacle-flow validation case (e.g., Jubayer & Hangan velocity profiles) would anchor credibility. This is primarily a methods/results issue, but it also affects presentation: without it, the paper must avoid language that implies validated predictive accuracy.
+- Editorial action: keep claims calibrated (e.g., “screening-level guidance” vs “quantitative prediction”) until at least one validation comparison is shown.
+
+Score note: I am keeping **7/10** for writing/LaTeX/reference hygiene as of the current draft; however, figure/narrative clarity will remain capped until (i) convergence reporting is made audit-friendly, (ii) the negative-shelter terminology is repaired, and (iii) at least one uncertainty band is plotted.
