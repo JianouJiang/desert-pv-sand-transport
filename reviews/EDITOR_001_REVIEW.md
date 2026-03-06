@@ -79,3 +79,52 @@ I spot-checked DOI resolution for the first **20 DOI-bearing entries** in `refer
 
 Score: 6/10
 
+---
+
+## Addendum (2026-03-06): incorporate latest reviews + current draft state
+
+This addendum reflects the updated manuscript and the new review set (`JUDGE_002_REVIEW.md`, `STATISTICIAN_002_REVIEW.md`, `ILLUSTRATOR_001_REVIEW.md`). I am not re-evaluating scientific validity; only presentation, LaTeX hygiene, and reference integrity.
+
+### A) Items from EDITOR_001 now resolved
+
+- **List-heavy writing cleaned up**: `itemize`/`description` are removed from the main narrative; Conclusions are now in tight prose. (A numbered list remains in Limitations; see “Remaining items”.)
+- **`siunitx` fixes applied**: the earlier `\SI{}{\micro\metre}` misuse is gone; `\si{\micro\metre}` is used consistently in the current draft.
+- **Submission boilerplate improved**: `\section*{Declaration of competing interest}` and `\section*{Data availability}` are now present.
+- **References cleaned**: `references.bib` now contains **26 entries and all 26 are cited** (no orphans, no missing keys).
+- **Reference existence spot-check**: I re-checked DOI resolution for **10 DOI-bearing entries**; all returned HTTP 302 at `doi.org` (OK).
+
+### B) Remaining editor-facing issues (high priority)
+
+1) **`hyperref` warnings persist**  
+`manuscript/main.log` still shows repeated “Token not allowed in a PDF string (Unicode)” warnings. These usually come from author/title macros (e.g., `\corref`, footnote commands) leaking into PDF bookmarks/metadata. Clean bookmarks matter for submission polish.
+
+2) **Template completeness still uncertain (Solar Energy / Elsevier)**  
+Even with competing interest + data availability added, the manuscript still appears to lack:
+  - **CRediT author contribution statement** (often expected).
+  - **Highlights** / **Graphical abstract** (sometimes required depending on journal workflow).  
+Confirm requirements against the target Solar Energy submission checklist and include the missing elements if mandated.
+
+3) **Citations that may not support the claim as written**  
+The text uses `\cite{dong2004flow}` to support a statement about panel wake reattachment length scaling with tilt angle. That cited paper (porous fences) may not support this specific claim; either replace with a more appropriate separation/reattachment reference for inclined plates/panels or rephrase to a claim that the cited work actually substantiates.
+
+4) **Reference-key hygiene**  
+The entry key `dong2004flow` has `year = {2007}`. Keys can be arbitrary, but year-mismatched keys confuse reviewers and collaborators; consider normalizing keys to `dong2007...` (or otherwise aligning key naming conventions).
+
+### C) Figure/presentation polish (from Illustrator + editor scan)
+
+I did not redesign figures, but several presentation issues are likely to draw reviewer attention:
+
+- **Gridlines too prominent** across many plots (per Illustrator). Reduce grid alpha/linewidth or disable by default; turn on only where the grid is doing quantitative work.
+- **Literal tildes in figure text** (e.g., `0.1~m`) appear in some Matplotlib labels. In plots, a tilde reads as a tilde, not a non-breaking space; replace with proper spacing.
+- **Caption–figure consistency**: verify that captions match what is actually shown (Illustrator flagged at least one case where the caption implies numeric annotations that may not be present). This is an easy credibility win.
+- **Float efficiency still a risk**: short-height figures (especially domain schematic / heatmaps) can create large post-float gaps in the Elsevier layout. Prefer figures that use the available vertical space (multi-panel stacking, insets, richer annotation) so each float “earns” its page area.
+
+### D) Layout-report interpretation (do not overreact)
+
+`manuscript/layout_report.md` has been regenerated (**2026-03-06 04:38**) and still flags ~90%+ “white%” as CRITICAL on nearly all pages. This metric/threshold remains **miscalibrated** for papers; use it cautiously and prioritize more specific defect signals (e.g., oversized float gaps) over the raw white-space percentage.
+
+### E) Manuscript-claim precision (language/consistency)
+
+The Judge/Statistician note potential discrepancies in how convergence is described (initial vs final residuals, formal vs practical convergence). As an editor-facing action: ensure the manuscript’s convergence claims are **precise, consistent, and audit-friendly** (define which residual is monitored and how “converged” is counted), so the narrative matches the actual logs/data.
+
+Updated score (presentation only, given fixes observed): 7/10
