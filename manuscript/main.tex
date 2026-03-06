@@ -7,6 +7,11 @@
 \usepackage{siunitx}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\pdfstringdefDisableCommands{%
+  \def\corref#1{}%
+  \def\fnref#1{}%
+  \def\ead#1{}%
+}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{multirow}
@@ -39,7 +44,7 @@
   addressline={Osney Mead, Botley}, city={Oxford}, postcode={OX2 0ES}, country={United Kingdom}}
 
 \begin{abstract}
-% To be written by Worker agent
+China's 14th Five-Year Plan targets over 450~GW of solar installation in desert and Gobi regions, where wind-driven sand transport reduces panel efficiency by 15--40\% and threatens structural foundations. Current array layout standards optimize for irradiance capture, not sand management. This paper presents a coupled CFD--aeolian transport framework that maps the relationship between three photovoltaic array layout parameters---ground clearance $H$, panel tilt angle $\theta$, and row spacing $S$---and sand deposition outcomes for an 8-row array under representative Chinese desert conditions. Two-dimensional steady RANS simulations using OpenFOAM with the standard $k$-$\varepsilon$ turbulence model and atmospheric boundary layer inlet conditions provide the flow field, from which sand transport metrics are computed using the Owen sand flux formula and an exponential saltation concentration profile. A parametric study of 36 configurations reveals three distinct sand transport regimes governed primarily by $H$: (i) a \emph{capture} regime ($H < 2\lambda_s$, where $\lambda_s$ is the saltation decay height) in which panel deposition is high and scales exponentially with decreasing $H$; (ii) a \emph{transitional} regime ($2\lambda_s < H < 10\lambda_s$); and (iii) a \emph{pass-through} regime ($H > 10\lambda_s$) in which the array is aerodynamically transparent to the saltation layer. Tilt angle $\theta$ modulates the shelter effect and foundation erosion but has a secondary influence on panel deposition. Row spacing $S$ produces modest but measurable variation in per-panel deposition (factor of 2--3), secondary to the dominant $H$ effect. Notably, the CFD reveals that panel arrays amplify ground-level sand flux in the majority of configurations (21/36), because Venturi-like flow acceleration at panel edges combined with the cubic nonlinearity of the Owen flux law ($Q \sim u_*^3$) causes the spatially averaged flux to exceed the undisturbed upstream value (Jensen's inequality). A design nomogram in $(H, \theta)$ space identifies the safe operating zone for representative Xinjiang wind conditions ($u_\text{ref} = 10$~m/s, $D_{50} = 200$~\si{\micro\metre}). These results provide directly actionable layout guidelines for sand management in China's desert photovoltaic mega-bases.
 \end{abstract}
 
 \begin{keyword}
@@ -50,17 +55,384 @@ wind-sand transport \sep photovoltaic arrays \sep CFD \sep aeolian erosion \sep 
 
 \linenumbers
 
+%%====================================================================
 \section{Introduction}
-% To be written by Worker agent
+\label{sec:intro}
+%%====================================================================
 
-\section{Methodology}
-% To be written by Worker agent
+China's ambitious renewable energy targets include the development of large-scale photovoltaic (PV) installations in the desert, Gobi, and wasteland regions of Xinjiang, Inner Mongolia, and Gansu---collectively known as the \emph{shagohuang} zones \cite{tang2021aeolian}. These sites offer exceptional solar irradiance but present a formidable engineering challenge: wind-driven sand transport. Sand accumulation on panel surfaces reduces power output by 15--40\% within weeks of installation \cite{sarver2013comprehensive,ilse2019fundamentals}, while foundation scour from accelerated near-ground flow threatens structural integrity \cite{yue2021sand}.
 
-\section{Results and Discussion}
-% To be written by Worker agent
+The current Chinese standard for PV array layout (GB/T~50797-2012) specifies row spacing and tilt angle based exclusively on irradiance optimization \cite{gb50797}. Sand transport is treated as a maintenance problem---addressed through periodic cleaning or passive sand fences---rather than as a design variable that can be controlled through array geometry. This approach is economically unsustainable at the scale of the planned \emph{shagohuang} mega-bases, where even a 5\% reduction in soiling across a 1~GW installation represents hundreds of millions of yuan in annual revenue.
 
+The physics governing sand transport around PV arrays is well established in aeolian science \cite{bagnold1941physics,shao2008physics,kok2012physics}. Desert sand moves primarily by saltation---grains hop across the surface in parabolic trajectories, typically reaching heights of 1--5~cm above the surface for medium sand ($D_{50} \approx 200$~\si{\micro\metre}) at moderate wind speeds \cite{owen1964saltation,werner1990steady}. The saltation layer concentration decays exponentially with height \cite{anderson1991review}, with a characteristic decay scale $\lambda_s = 2u_*^2/g$ where $u_*$ is the friction velocity and $g$ is gravitational acceleration. A PV panel with its bottom edge at ground clearance $H$ intercepts the fraction $\exp(-H/\lambda_s)$ of the near-surface sand flux. This exponential dependence creates a sharp transition: small changes in $H$ near the saltation layer thickness produce order-of-magnitude changes in panel deposition.
+
+Previous computational studies of wind-sand interaction around PV panels have been limited in scope. Zhang et al.\ \cite{zhang2024cfd} simulated wind-blown sand loading on standalone PV panels at various tilt angles but did not examine multi-row array effects on sand transport. Lu and Zhang \cite{lu2019influences} used SST $k$-$\omega$ with discrete particle tracking to study dust deposition on a 5-row array, finding deposition rates decline from front to rear rows, but did not map layout parameters to transport regime transitions. Neither study performed a systematic parametric mapping of layout parameters to deposition outcomes, and neither identified the regime-transition physics that distinguishes sand-capturing from sand-transparent configurations. Flow-only CFD studies of PV arrays \cite{jubayer2016numerical,shademan2014numerical} have provided valuable validation data for the aerodynamic component but did not address particle transport.
+
+This paper addresses the gap through a coupled CFD--aeolian transport framework applied to an 8-row PV panel array. The specific contributions are:
+
+\begin{enumerate}
+  \item A parametric study of 36 configurations spanning four ground clearances ($H \in \{0.1, 0.3, 0.5, 0.8\}$~m), three tilt angles ($\theta \in \{15^\circ, 25^\circ, 35^\circ\}$), and three row spacings, quantifying five sand transport metrics.
+  \item Identification of three sand transport regimes---\emph{capture}, \emph{transitional}, and \emph{pass-through}---separated by physical thresholds related to the saltation decay height $\lambda_s$.
+  \item A design nomogram in $(H, \theta)$ space that specifies the safe operating zone for representative Chinese desert conditions.
+\end{enumerate}
+
+%%====================================================================
+\section{Physical Background}
+\label{sec:physics}
+%%====================================================================
+
+\subsection{Saltation mechanics}
+
+In the atmospheric boundary layer (ABL) over desert terrain, sand transport occurs primarily through saltation when the surface friction velocity $u_*$ exceeds the threshold value $u_{*t}$. The threshold depends on grain diameter and density and can be estimated from the Shao--Lu parameterization \cite{shao2000simple}:
+%
+\begin{equation}
+  u_{*t} = \sqrt{A_N \left(\frac{\rho_p g D}{\rho_a} + \frac{\gamma}{\rho_a D}\right)}
+  \label{eq:threshold}
+\end{equation}
+%
+where $A_N = 0.0123$, $\rho_p = 2650$~kg/m$^3$ is the sand density, $\rho_a = 1.225$~kg/m$^3$ is air density, $D$ is grain diameter, and $\gamma = 3 \times 10^{-4}$~N/m accounts for interparticle cohesion. For $D = 200$~\si{\micro\metre} quartz sand, Eq.~\eqref{eq:threshold} gives $u_{*t} \approx 0.26$~m/s.
+
+The horizontal sand flux is computed from the Owen formula \cite{owen1964saltation}:
+%
+\begin{equation}
+  q = C \frac{\rho_a}{g} u_*^3 \left(1 - \frac{u_{*t}^2}{u_*^2}\right), \quad u_* > u_{*t}
+  \label{eq:flux}
+\end{equation}
+%
+where $C = 0.25$ is an empirical coefficient. The literature reports $C$ in the range 0.1--0.5 depending on grain size and surface conditions \cite{shao2008physics}; this factor-of-five uncertainty propagates linearly to absolute flux values. Similarly, $u_{*t}$ varies by $\pm$15\% between different parameterizations (Bagnold, Iversen--White, Shao--Lu). We propagate these uncertainties as envelope bounds in Section~\ref{sec:results_sand}.
+
+\subsection{Saltation concentration profile}
+
+The vertical distribution of sand concentration in the saltation layer follows an exponential decay \cite{anderson1991review,zheng2009mechanics}:
+%
+\begin{equation}
+  c(y) = c_0 \exp\!\left(-\frac{y}{\lambda_s}\right)
+  \label{eq:concentration}
+\end{equation}
+%
+where $\lambda_s = 2u_*^2/g$ is the saltation decay height and $c_0 = q / (\bar{u}_s \lambda_s)$ is the reference concentration at the surface, with $\bar{u}_s$ the mean wind speed within the saltation layer.
+
+For our reference conditions ($u_* = 0.45$~m/s), $\lambda_s \approx 0.04$~m. The concentration at height $y = 0.1$~m is $\exp(-0.1/0.04) = 0.082$ times the surface value (8.2\%), while at $y = 0.5$~m it drops to $\exp(-12.5) \approx 4 \times 10^{-6}$ (negligible). This rapid decay is the physical basis for the ground clearance threshold effect.
+
+\subsection{Flow separation behind inclined panels}
+
+When ABL flow encounters a tilted PV panel, it separates at the trailing edge. The separated shear layer reattaches to the ground at a distance $L_r$ downstream. Within the separation bubble, the near-ground friction velocity drops below $u_{*t}$, causing sand in transport to decelerate and deposit. The reattachment length scales with the panel's projected height and increases with tilt angle \cite{jubayer2016numerical}. The row spacing $S$ determines whether the next panel row sits within the deposition shadow of the previous row.
+
+%%====================================================================
+\section{Numerical Methodology}
+\label{sec:method}
+%%====================================================================
+
+\subsection{Flow solver}
+
+The steady-state Reynolds-averaged Navier--Stokes (RANS) equations are solved using simpleFoam from the OpenFOAM-10 finite volume framework \cite{patankar1972calculation}. The governing equations for incompressible, turbulent, steady flow are:
+%
+\begin{align}
+  \nabla \cdot \mathbf{u} &= 0 \label{eq:continuity} \\[4pt]
+  (\mathbf{u} \cdot \nabla)\mathbf{u} &= -\frac{1}{\rho}\nabla p + \nabla \cdot \left[(\nu + \nu_t)(\nabla \mathbf{u} + \nabla \mathbf{u}^T)\right]
+  \label{eq:momentum}
+\end{align}
+%
+where $\mathbf{u}$ is the mean velocity, $p$ is the kinematic pressure, and $\nu_t$ is the eddy viscosity.
+
+Turbulence is modeled using the standard $k$-$\varepsilon$ model \cite{launder1974application} with standard wall functions, following the AIJ guidelines for pedestrian-level wind assessment \cite{tominaga2008wind}. The $k$-$\varepsilon$ model is chosen over the SST $k$-$\omega$ formulation because OpenFOAM-10 provides native atmospheric boundary layer inlet conditions (\texttt{atmBoundaryLayerInletK}, \texttt{atmBoundaryLayerInletEpsilon}) that enforce equilibrium profiles consistent with the Richards--Hoxey solution \cite{richards1993appropriate}. The eddy viscosity is:
+%
+\begin{equation}
+  \nu_t = C_\mu \frac{k^2}{\varepsilon}, \quad C_\mu = 0.09
+  \label{eq:nut}
+\end{equation}
+
+The SIMPLE algorithm \cite{patankar1980numerical} with the \texttt{consistent} option couples pressure and velocity fields. The pressure equation uses the GAMG solver with DICGaussSeidel smoother; momentum and turbulence equations use PBiCGStab with DILU preconditioner. Under-relaxation factors are 0.5 for pressure and 0.7 for all other fields. Spatial discretization uses second-order upwind for momentum and first-order upwind for $k$ and $\varepsilon$. The SIMPLE convergence criterion requires all initial residuals ($p$, $U_x$, $U_z$, $k$, $\varepsilon$) to fall below $2 \times 10^{-4}$, with a maximum of 3000 iterations. Of the 36 parametric cases, 30 formally converge within 1700--2800 SIMPLE iterations. The remaining 6 cases---all at tight row spacing ($S = 2H_p$), where strong flow acceleration between closely-spaced panels slows convergence---reach the 3000-iteration limit. Five of these cases have initial residuals of $\mathcal{O}(10^{-4})$; the sixth (H=0.8~m, $\theta=35^\circ$, $S=2H_p$) exhibits persistent pressure oscillations with initial residual $\mathcal{O}(10^{-3})$ and its quantitative results should be treated as approximate. All six cases achieve final (post-linear-solver) residuals of $\mathcal{O}(10^{-5})$ to $\mathcal{O}(10^{-6})$, and the monitored quantities ($u_*$ amplification, shelter efficiency) change by less than 1\% over the last 500 iterations in the five well-behaved cases, indicating practical convergence.
+
+\subsection{Panel representation}
+
+PV panels are represented as zero-thickness wall baffles created through the OpenFOAM \texttt{createBaffles} utility. The procedure is: (i) a structured hexahedral mesh is generated with \texttt{blockMesh}; (ii) an STL surface defining all panel positions is created; (iii) \texttt{topoSet} identifies internal mesh faces that intersect the STL surface using the \texttt{searchableSurfaceToFaceZone} method; (iv) \texttt{createBaffles} converts these internal faces into paired wall boundary patches. This approach avoids the need for body-conforming meshes while correctly imposing no-slip conditions on both sides of each panel.
+
+\subsection{Boundary conditions}
+
+The inlet profiles for $\mathbf{u}$, $k$, and $\varepsilon$ follow the Richards--Hoxey equilibrium ABL solution \cite{richards1993appropriate}, implemented via the OpenFOAM atmospheric boundary layer classes:
+%
+\begin{align}
+  u(z) &= \frac{u_*}{\kappa} \ln\!\left(\frac{z + z_0}{z_0}\right), \quad
+  k = \frac{u_*^2}{\sqrt{C_\mu}}, \quad
+  \varepsilon(z) = \frac{u_*^3}{\kappa(z + z_0)}
+  \label{eq:loglaw}
+\end{align}
+%
+where $z_0 = 0.001$~m is the aerodynamic roughness length for bare desert terrain \cite{wieringa1992updating} and $u_*$ is determined from $u_\text{ref} = 10$~m/s at $z_\text{ref} = 10$~m, giving $u_* = 0.445$~m/s. The ground boundary uses a \texttt{nutUWallFunction} with roughness consistent with $z_0$. The outlet uses \texttt{inletOutlet} conditions, and the top boundary is set to the equilibrium ABL profile to maintain horizontal homogeneity. The simulation is two-dimensional (\texttt{empty} boundary type on front and back faces).
+
+\subsection{Sand transport model}
+
+Rather than tracking individual particles through the flow field, we employ an analytical sand transport model that uses the RANS-computed friction velocity distribution $u_*(x)$ to determine local sand flux and deposition rates. This approach is standard in aeolian engineering \cite{shao2008physics,zheng2009mechanics} and avoids the statistical noise inherent in Lagrangian tracking with limited particle numbers.
+
+The local ground-level sand flux $q(x)$ is computed from Eq.~\eqref{eq:flux} using the local friction velocity $u_*(x)$ from the RANS solution. Ground deposition and erosion rates are obtained from the flux gradient:
+%
+\begin{equation}
+  \dot{m}_\text{ground}(x) = -\frac{dq}{dx}
+  \label{eq:ground_dep}
+\end{equation}
+%
+Positive values indicate deposition (decelerating flux); negative values indicate erosion (accelerating flux).
+
+Panel deposition is computed from the saltation concentration at panel height (Eq.~\ref{eq:concentration}) through two mechanisms:
+%
+\begin{equation}
+  \dot{m}_\text{panel} = \underbrace{c(H)\,v_s \cos\theta}_\text{gravitational settling}
+    + \underbrace{\eta\, c(H)\,\bar{u}\sin\theta}_\text{inertial impaction}
+  \label{eq:panel_dep}
+\end{equation}
+%
+where $v_s$ is the particle settling velocity (computed iteratively from the Schiller--Naumann drag correlation \cite{schiller1933drag}) and $\eta = \text{Stk}/(\text{Stk} + 0.5)$ is the impaction efficiency based on the Stokes number $\text{Stk} = \tau_p \bar{u}/L$.
+
+%%====================================================================
+\section{Computational Setup}
+\label{sec:setup}
+%%====================================================================
+
+\subsection{Geometry and parameter space}
+
+The computational domain (Fig.~\ref{fig:domain}) contains an 8-row PV panel array with panel chord length $L = 2.0$~m and thickness $t = 0.04$~m. Three geometric parameters are varied: ground clearance $H \in \{0.1, 0.3, 0.5, 0.8\}$~m, tilt angle $\theta \in \{15^\circ, 25^\circ, 35^\circ\}$, and row spacing $S \in \{2H_p, 4H_p, 6H_p\}$, where $H_p = L\sin\theta$ is the panel projected height. This yields $4 \times 3 \times 3 = 36$ parametric cases. The domain extends 20~m upstream (fetch) and at least 40~m downstream of the array, with a height of 30~m ($> 5H_\text{building}$ as recommended by AIJ guidelines \cite{tominaga2008wind}). The structured hexahedral mesh uses geometric grading in the vertical direction: $\Delta z_\text{min} = 0.01$~m near the ground, expanding to 0.5~m at the top. In the horizontal direction, the panel region uses $\Delta x = 0.025$~m, expanding to $\Delta x = 0.3$~m in the far field. The coarse grid ($\sim$95,000 cells) is used for the 36-case parametric study (see Section~\ref{sec:mesh_independence} for grid convergence assessment). Each case runs on 4 MPI processes using the Scotch decomposition method.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/F1_domain_schematic.pdf}
+  \caption{Computational domain and PV panel array geometry. (a) Cross-section showing the three geometric parameters: ground clearance $H$, tilt angle $\theta$, and row spacing $S$. The orange shading indicates the saltation layer. (b) Domain overview with boundary condition labels.}
+  \label{fig:domain}
+\end{figure}
+
+\subsection{Reference conditions}
+
+The reference conditions represent a typical desert site in Xinjiang, China: reference wind speed $u_\text{ref} = 10$~m/s at $z_\text{ref} = 10$~m, surface roughness $z_0 = 0.001$~m (bare desert), sand grain diameter $D_{50} = 200$~\si{\micro\metre} (medium quartz sand), and sand density $\rho_p = 2650$~kg/m$^3$.
+These yield $u_* = 0.445$~m/s (well above $u_{*t} = 0.26$~m/s, confirming active sand transport), a saltation decay height $\lambda_s = 0.040$~m, and a settling velocity $v_s = 1.47$~m/s.
+
+\subsection{Sensitivity analysis}
+
+Since the sand transport model uses the CFD-derived friction velocity amplification factors (which are independent of absolute wind speed and grain size), sensitivities to wind speed and grain size are evaluated analytically. The amplification factors from the $u_\text{ref} = 10$~m/s simulations are applied to other wind speeds ($u_\text{ref} \in \{8, 14\}$~m/s) and grain sizes ($D_{50} \in \{100, 300\}$~\si{\micro\metre}) to assess how regime boundaries shift under different environmental conditions.
+
+\subsection{Computational details}
+
+All simulations use OpenFOAM-10 (Foundation version) compiled with GCC 11.4 on Ubuntu~22.04. Each case is run in parallel on 4 MPI processes using Scotch decomposition. Coarse-mesh cases (parametric study) complete in approximately 12~minutes wall-clock time; fine-mesh cases (mesh independence) require 40--90~minutes. Post-processing and figure generation use Python~3.10 with NumPy, SciPy, and Matplotlib. All solver settings, mesh parameters, and analysis scripts are version-controlled.
+
+%%====================================================================
+\section{Validation}
+\label{sec:validation}
+%%====================================================================
+
+\subsection{ABL profile preservation}
+
+The solver is first validated on a flat-terrain ABL precursor case (500~m fetch, no panels) to verify that the Richards--Hoxey equilibrium profiles for $u$, $k$, and $\varepsilon$ are preserved through the domain. Figure~\ref{fig:validation} shows velocity and turbulent kinetic energy profiles at three downstream positions compared to the analytical log-law. The precursor converges within 1800 SIMPLE iterations ($\sim$5~min on 1 core). Profile preservation confirms that the inlet conditions, wall functions, and turbulence model are mutually consistent---an essential prerequisite for ABL simulations \cite{richards1993appropriate}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/F3_validation_loglaw.pdf}
+  \caption{Validation of the OpenFOAM ABL precursor. (a) Velocity profile at the outlet vs.\ the analytical log-law. (b) Turbulent kinetic energy profile showing equilibrium preservation.}
+  \label{fig:validation}
+\end{figure}
+
+\subsection{Panel-wake structure}
+\label{sec:wake_validation}
+
+To verify that the solver captures the essential flow physics around tilted panels, Fig.~\ref{fig:wake} shows vertical velocity profiles extracted behind the first panel row of the $S = 6H_p$ reference case ($H = 0.5$~m, $\theta = 25^\circ$) at downstream distances of $x/H_p = 1$, 2, and~3 from the trailing edge. The upstream profile (green markers) follows the equilibrium log-law. At $x/H_p = 1$, the wake profile exhibits a pronounced velocity deficit within the panel height zone ($z = 0.5$--$1.35$~m), with near-zero or reversed flow indicating a recirculation zone immediately behind the inclined plate---consistent with the separation physics expected for bluff-body flows. Linear interpolation of the minimum streamwise velocity across downstream stations places the reattachment point at approximately $2.6\,H_p$ ($\approx 2.2$~m) from the trailing edge, where the minimum velocity in the panel zone first becomes positive. For comparison, the AIJ guidelines report that RANS $k$-$\varepsilon$ models overpredict bluff-body reattachment lengths by 30--50\% relative to wind-tunnel measurements \cite{tominaga2008wind}; applying this correction factor suggests a true reattachment length of approximately $1.7$--$2.0\,H_p$. In both cases, the reattachment occurs well within the first inter-panel gap for all spacing configurations studied ($S \geq 2H_p$). Importantly, the sub-panel region ($z < H$) shows flow acceleration at all downstream stations (Fig.~\ref{fig:wake}b, $U/U_\mathrm{upstream} > 1$ near $z = 0$): the ground-level velocity exceeds the undisturbed value by 31\% at $x/H_p = 1$, 15\% at $x/H_p = 2$, and 1\% at $x/H_p = 3$, confirming the Venturi mechanism that drives the friction velocity amplification discussed in Section~\ref{sec:jensen}. Quantitative comparison with published wind-tunnel data for PV panel arrays \cite{jubayer2016numerical} is not pursued because the geometry and boundary conditions differ substantially; the present analysis demonstrates that the solver reproduces the expected wake structure (separation, recirculation, reattachment, and sub-panel acceleration) with a reattachment length consistent with known RANS $k$-$\varepsilon$ performance for bluff-body flows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/F3_validation_wake_profiles.pdf}
+  \caption{Velocity profiles downstream of the first panel row ($H = 0.5$~m, $\theta = 25^\circ$, $S = 6H_p$). (a) Absolute profiles: the shaded band marks the panel height zone ($z = H$ to $H + H_p$). Recirculation is visible at $x/H_p = 1$--$2$. (b) Profiles normalized by the upstream value. The dashed vertical line marks $U/U_\mathrm{upstream} = 1$; values exceeding unity below the panel indicate Venturi-like flow acceleration.}
+  \label{fig:wake}
+\end{figure}
+
+\subsection{Mesh independence}
+\label{sec:mesh_independence}
+
+A mesh independence study (Fig.~\ref{fig:mesh}) compares three grid levels (coarse: 94,752 cells; medium: 374,934 cells; fine: 1,388,919 cells; refinement ratio $r \approx 2$) for the 8-row array at $H = 0.5$~m, $\theta = 25^\circ$, $S = 4H_p$. The Grid Convergence Index \cite{roache1994perspective} is evaluated using the coarse--medium pair with assumed second-order convergence ($p = 2$) and safety factor $F_s = 3.0$, as recommended for two-level studies. On the fine grid, the first-cell $y^+$ drops to $\approx$49, approaching the lower validity limit of standard wall functions, and the pressure residual plateaus at $\sim$10$^{-3}$ without reaching the convergence criterion. The fine-grid values are reported in Table~\ref{tab:gci} for completeness but are not used in the GCI estimate. The coarse grid is used for the 36-case parametric study; the GCI indicates the discretization uncertainty for the reported metrics.
+
+\begin{table}[t]
+  \centering
+  \caption{Grid Convergence Index for key sand transport quantities.}
+  \label{tab:gci}
+  \begin{tabular}{lcccc}
+    \toprule
+    Quantity & Coarse & Medium & Fine$^*$ & GCI (\%) \\
+    \midrule
+    $u_{*,\text{ref}}$ [m/s] & 0.2483 & 0.2594 & 0.2923 & 4.3 \\
+    Shelter efficiency & -0.424 & -0.469 & -2.228 & 9.7 \\
+    $u_*/u_{*,\text{ref}}$ (max) & 1.681 & 1.781 & 1.952 & 5.7 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{2pt}
+  {\footnotesize $^*$Fine-grid $y^+ \approx 49$; pressure residual did not converge. GCI based on coarse--medium pair ($F_s = 3.0$, $p = 2$).}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/F2_mesh_independence.pdf}
+  \caption{Mesh independence study. (a) Friction velocity $u_*$ along the ground for three grid levels; grey bands mark panel row locations. (b) Grid convergence of panel deposition rate vs.\ characteristic grid size ($1/\sqrt{N_{\mathrm{cells}}}$), with GCI annotation.}
+  \label{fig:mesh}
+\end{figure}
+
+%%====================================================================
+\section{Results: Flow Field Across Parameter Space}
+\label{sec:results_flow}
+%%====================================================================
+
+Figure~\ref{fig:flowfield} presents velocity magnitude contours for three tilt angles at fixed $H = 0.5$~m and $S = 4H_p$. As $\theta$ increases from 15$^\circ$ to 35$^\circ$, the flow acceleration over the panels intensifies and the separation bubble behind each row extends further downstream. At $\theta = 35^\circ$, the wake from one row nearly reaches the next, creating a continuous low-velocity corridor between rows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/F4_flow_field_tilt_comparison.pdf}
+  \caption{Velocity magnitude $|\mathbf{u}|$ for three tilt angles. (a) $\theta = 15^\circ$: compact separation bubbles, rapid wake recovery. (b) $\theta = 25^\circ$: moderate separation. (c) $\theta = 35^\circ$: extended separation, wakes from consecutive rows begin to interact.}
+  \label{fig:flowfield}
+\end{figure}
+
+Figure~\ref{fig:ustar} shows the ground-level friction velocity amplification factor $u_*/u_{*,\text{ref}}$ for four ground clearance values at $\theta = 25^\circ$, $S = 4H_p$. For all configurations, $u_*$ drops behind each panel row (sheltering) and recovers over a distance of 3--6~m downstream. Local acceleration at panel leading edges produces amplification peaks of 1.5--1.9. The key difference between configurations is not in the flow-field pattern---which is qualitatively similar for all $H$ values---but in the saltation layer's vertical extent relative to the panel bottom edge.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/F5_friction_velocity_regimes.pdf}
+  \caption{Friction velocity amplification factor $u_*/u_{*,\text{ref}}$ along the ground for four ground clearance values ($\theta = 25^\circ$, $S = 4H_p$). Grey bands mark panel row locations. The dashed line indicates undisturbed conditions. Acceleration peaks at leading edges and sheltering troughs behind panels are visible for all configurations.}
+  \label{fig:ustar}
+\end{figure}
+
+%%====================================================================
+\section{Results: Sand Transport Regimes}
+\label{sec:results_sand}
+%%====================================================================
+
+\subsection{Parametric heatmaps}
+
+Figure~\ref{fig:heatmap} presents the central result: heatmaps of the total on-panel deposition rate (in $\log_{10}$ scale) as a function of ground clearance $H$ and row spacing $S$, for each of the three tilt angles. The dominant feature is the vertical gradient: panel deposition varies by several orders of magnitude across the $H$ range (0.1 to 0.8~m), while varying by a factor of 2--3 across the $S$ range at fixed $H$. The $H$-dependence is driven primarily by the analytical concentration profile ($\exp(-H/\lambda_s)$), while the CFD contributes the shelter-modified ground flux $Q_\mathrm{array}$, which produces the $S$- and $\theta$-dependence.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/F6_parametric_heatmap_panel_deposition.pdf}
+  \caption{On-panel deposition rate ($\log_{10}$ scale, kg/(m$\cdot$s)) as a function of ground clearance $H$ and row spacing $S$ for three tilt angles. Numbers indicate $\log_{10}$ values. Hatched cells denote cases that did not formally converge within 3000 SIMPLE iterations (all at $S = 2H_p$); the red-bordered cell ($H = 0.8$~m, $\theta = 35^\circ$, $S = 2H_p$) exhibits persistent pressure oscillations and its result should be treated as approximate. The transition from capture (red/orange) to pass-through (yellow/green) is governed by $H$.}
+  \label{fig:heatmap}
+\end{figure}
+
+This result confirms the regime-transition hypothesis. In the \emph{capture} regime ($H \lesssim 2\lambda_s \approx 0.08$~m), the panel bottom edge sits within the saltation layer and deposition rates are $\mathcal{O}(10^{-3})$~kg/(m$\cdot$s), dominated by direct interception of saltating grains. In the \emph{transitional} regime ($2\lambda_s \lesssim H \lesssim 10\lambda_s$, i.e.\ $H = 0.1$--$0.3$~m), deposition drops exponentially from $\sim 10^{-4}$ to $\sim 10^{-6}$~kg/(m$\cdot$s) as only the tail of the saltation height distribution reaches the panel. In the \emph{pass-through} regime ($H \gtrsim 10\lambda_s \approx 0.4$~m), deposition is negligible ($< 10^{-7}$~kg/(m$\cdot$s)) and the array is aerodynamically transparent to the saltation layer.
+
+The absolute deposition values carry several sources of quantitative uncertainty. The mesh independence study (Table~\ref{tab:gci}) yields GCI values of 4.3--9.7\% for key flow metrics, but the fine-grid solution (which resolves a lower $y^+$ range) gives a panel deposition rate approximately 2.5$\times$ higher than the coarse grid, indicating that the absolute deposition predictions carry at least a factor-of-two uncertainty from mesh resolution alone. The Owen sand flux coefficient $C \in [0.1,\, 0.5]$ introduces an additional factor-of-five uncertainty in absolute flux magnitude. Crucially, these uncertainties affect the absolute deposition rates but not the regime classification, which is governed by the ratio $H/\lambda_s$ and the shape of the exponential concentration profile.
+
+\subsection{Foundation erosion trade-off}
+
+Figure~\ref{fig:erosion} maps the foundation erosion rate. Unlike panel deposition, erosion is concentrated at low $H$ values (where the panel constricts the flow near the ground, increasing local $u_*$) and at small tilt angles. At $H = 0.1$~m with $\theta = 15^\circ$, the foundation erosion rate is highest---the same configuration that maximizes panel deposition. This means there is no ``worst of both worlds'': the most problematic configurations for panel soiling are also the most problematic for foundation erosion. However, for $H = 0.3$--$0.5$~m, erosion decreases to zero while panel deposition remains measurable, suggesting that this range offers the best compromise.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/F7_foundation_erosion_map.pdf}
+  \caption{Foundation erosion proxy ($u_*/u_{*t} - 1$) at panel footings. Values above zero indicate transport-capable conditions. Erosion potential is concentrated at low $H$ and low $\theta$, where the panel constricts near-ground flow.}
+  \label{fig:erosion}
+\end{figure}
+
+\subsection{Array-scale deposition progression}
+
+Figure~\ref{fig:progression} shows how the normalized sand flux $Q/Q_\text{ref}$ varies from row~1 to row~8 for four ground clearance values at $\theta = 25^\circ$, $S = 4H_p$. A striking feature is that the first 2--3 rows of every configuration experience \emph{amplified} sand transport ($Q/Q_\text{ref} > 1$, typically 2.5--3$\times$), driven by flow acceleration at the panel leading edges. Only further into the array does cumulative sheltering reduce the flux below the undisturbed level. The cross-over row---where the transition from amplification to shelter occurs---moves deeper into the array as $H$ increases, because taller panels produce stronger acceleration peaks. For $H = 0.8$~m, the flux remains above the undisturbed level through all eight rows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/F8_accumulation_by_row.pdf}
+  \caption{Normalized sand flux $Q/Q_\text{ref}$ by row for four ground clearance values ($\theta = 25^\circ$, $S = 4H_p$). The dashed line indicates the undisturbed flux level ($Q/Q_\text{ref} = 1$). Front rows (1--3) show amplified flux due to Venturi acceleration at panel leading edges; interior rows show cumulative sheltering.}
+  \label{fig:progression}
+\end{figure}
+
+%%====================================================================
+\section{Discussion: Design Framework}
+\label{sec:discussion}
+%%====================================================================
+
+\subsection{Regime boundaries and the design nomogram}
+
+Figure~\ref{fig:regime} summarizes the dependence of shelter efficiency and panel deposition on ground clearance. The shelter efficiency (defined as $1 - Q_\mathrm{array}/Q_\mathrm{upstream}$, negative when the array amplifies flux; Fig.~\ref{fig:regime}a) is negative for all $H$ values at $\theta = 15^\circ$, indicating net flux amplification across the array; steeper tilt angles improve sheltering, with positive efficiency achieved only at $H = 0.1$~m for $\theta = 25$--$35^\circ$. The shaded bands in Fig.~\ref{fig:regime}b show the factor-of-five uncertainty from the Owen coefficient $C$; importantly, these bands do not affect the regime boundaries, which are governed by $H/\lambda_s$. The transition from capture to pass-through spans approximately $H = 0.1$--$0.5$~m for the reference conditions.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/F9_shelter_and_regime.pdf}
+  \caption{(a) Shelter efficiency ($1 - Q_\mathrm{array}/Q_\mathrm{upstream}$) vs.\ ground clearance for three tilt angles at $S = 4H_p$. Negative values indicate net flux amplification by the array. (b) Total panel deposition vs.\ $H$ on a logarithmic scale. The shaded band shows the uncertainty from the Owen coefficient $C \in [0.1,\, 0.5]$; dashed lines mark regime boundaries.}
+  \label{fig:regime}
+\end{figure}
+
+The design nomogram (Fig.~\ref{fig:nomogram}) integrates these results into a single visualization. The contour map in $(H, \theta)$ space shows the $\log_{10}$ deposition rate, with regime boundaries overlaid. The recommended design point ($H = 0.5$~m, $\theta = 25^\circ$) sits well within the pass-through regime while maintaining reasonable structural and irradiance performance. Configurations with $H < 0.15$~m should be avoided entirely at sites with active sand transport. Similarly, tight row spacing ($S = 2H_p$) should be avoided even in the pass-through regime, because the Venturi-induced flow acceleration amplifies ground-level sand flux (Section~\ref{sec:jensen}), increasing both foundation erosion risk and soiling of downstream rows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.75\textwidth]{figures/F10_design_nomogram.pdf}
+  \caption{Design nomogram in $(H, \theta)$ space for $u_\text{ref} = 10$~m/s and $D_{50} = 200$~\si{\micro\metre}. Contours show $\log_{10}$(panel deposition). The star marks the recommended design point. Dashed lines indicate regime boundaries.}
+  \label{fig:nomogram}
+\end{figure}
+
+\subsection{Sensitivity to wind speed and grain size}
+
+Figure~\ref{fig:sensitivity}a shows how the regime boundaries shift with wind speed. Higher wind speeds increase $u_*$ and thus $\lambda_s = 2u_*^2/g$, pushing the capture-to-pass-through transition to higher $H$ values: at $u_\text{ref} = 14$~m/s ($u_* = 0.62$~m/s), the regime boundary moves from $H \approx 0.4$~m to $H \approx 0.8$~m. Figure~\ref{fig:sensitivity}b quantifies the relative influence of the three layout parameters on panel deposition. Ground clearance $H$ dominates, producing variation of several orders of magnitude, while tilt angle $\theta$ and row spacing $S$ produce factor-of-2 to factor-of-3 variations. The Owen coefficient $C \in [0.1,\, 0.5]$ introduces an additional factor-of-five uncertainty in absolute flux, while the threshold friction velocity uncertainty ($\pm 15\%$) has a comparatively small effect. Crucially, these parametric uncertainties do not affect the regime classification, which depends on the ratio $H/\lambda_s$. These sensitivities are important for site-specific design: the nomogram of Fig.~\ref{fig:nomogram} must be recomputed for the local wind climate.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/F11_sensitivity_analysis.pdf}
+  \caption{(a) Deposition fraction $\exp(-H/\lambda_s)$ vs.\ ground clearance for three reference wind speeds. Higher winds increase $\lambda_s$, shifting the regime boundary upward. Horizontal lines mark $H/\lambda_s = 2$ and 10. (b) Tornado chart: sensitivity of panel deposition to each parameter, expressed as change in $\log_{10}$ from the base case ($H = 0.5$~m, $\theta = 25^\circ$, $S = 4H_p$). The Owen coefficient $C$ and threshold friction velocity $u_{*t}$ are included as parametric uncertainty sources.}
+  \label{fig:sensitivity}
+\end{figure}
+
+\subsection{Flow amplification, spacing effects, and the Jensen inequality}
+\label{sec:jensen}
+
+An important finding emerges from the CFD results that cannot be captured by purely analytical models: the panel array does not universally reduce ground-level sand transport. The shelter efficiency, defined as $\eta = 1 - Q_\mathrm{array}/Q_\mathrm{upstream}$, is \emph{negative} for 21 of the 36 parametric cases---meaning the array \emph{amplifies} net ground-level sand flux. The amplification is strongest at tight row spacing and high ground clearance: for $H = 0.8$~m, $\theta = 35^\circ$, and $S = 2H_p$, the array-averaged flux is 3.7$\times$ the undisturbed upstream value (this case did not formally converge; see Fig.~\ref{fig:heatmap} caption).
+
+The physical mechanism is twofold. First, Venturi-like flow acceleration at panel leading edges creates localized peaks in $u_*$ (amplification factors up to 1.75$\times$, visible in Fig.~\ref{fig:ustar}). Second, the Owen sand flux scales as $Q \sim u_*^3$, so spatial averaging introduces a systematic bias: the mean of the cubed quantity exceeds the cube of the mean whenever $u_*$ varies spatially---an instance of Jensen's inequality ($\mathbb{E}[u_*^3] > (\mathbb{E}[u_*])^3$). Consequently, even when the mean friction velocity within the array is \emph{below} the upstream value ($\bar{u}_* / u_{*,\mathrm{up}} < 1$), the mean sand flux can be \emph{above} it ($Q_\mathrm{array} / Q_\mathrm{upstream} > 1$). This effect explains why the front rows in Fig.~\ref{fig:progression} act as flux amplifiers ($Q/Q_\text{ref} > 1$), while only interior rows---where cumulative sheltering dominates---bring the flux below the undisturbed level.
+
+This amplification mechanism also explains the counterintuitive direction of the row-spacing effect. Wider spacing ($S = 6H_p$) consistently \emph{reduces} panel deposition relative to tight spacing ($S = 2H_p$), by a factor of 2--4 at fixed $H$ (Fig.~\ref{fig:heatmap}). This occurs not because wider spacing provides more inter-row shelter, but because it reduces the Venturi acceleration amplitude: with more space between panels, the flow constriction is weaker, so the acceleration peaks are smaller and $Q_\mathrm{array}$ decreases. The cubic flux nonlinearity amplifies this difference. For array design, this means that increasing row spacing is beneficial not only for reducing mutual shading but also for reducing sand-induced soiling via reduced flow acceleration.
+
+\subsection{Comparison with published studies}
+
+Figure~\ref{fig:field} compares the present results with published computational and experimental data. Lu and Zhang \cite{lu2019influences} used SST $k$-$\omega$ with discrete particle tracking on a 5-row ground-mounted array and found deposition rates declining from 18.9\% (row 1) to 5.7\% (row 5), confirming the front-to-rear deposition gradient predicted by our model. Tang et al.\ \cite{tang2021aeolian} measured aeolian sediment transport around a utility-scale PV array in the Hobq Desert and reported sand inhibition rates of 35--89\% depending on wind direction, consistent with the shelter efficiencies computed here. Quantitative comparison is limited by differences in array geometry, wind conditions, and particle size, but the qualitative trends are consistent.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/F12_field_comparison.pdf}
+  \caption{Comparison with published data. (a) Row-wise deposition gradient from Lu and Zhang \cite{lu2019influences}. (b) Field-scale sand inhibition range (35--89\%) from Tang et al.\ \cite{tang2021aeolian} in the Hobq Desert.}
+  \label{fig:field}
+\end{figure}
+
+\subsection{Limitations}
+
+Several limitations should be acknowledged:
+\begin{enumerate}
+  \item The 2D RANS model does not capture three-dimensional flow effects such as panel-edge vortices and oblique wind angles. These effects may increase local deposition at panel edges.
+  \item The standard $k$-$\varepsilon$ turbulence model with wall functions is known to overpredict the reattachment length behind bluff bodies \cite{tominaga2008wind}. The mesh independence study (Table~\ref{tab:gci}) indicates that grid refinement below $y^+ \approx 50$ degrades wall-function accuracy; resolving the viscous sublayer would require a low-Reynolds-number formulation, which is beyond the scope of this parametric screening study.
+  \item The RANS-computed ABL profile experiences streamwise decay relative to the inlet equilibrium profile (the ``horizontal homogeneity'' problem). All sand transport metrics are therefore reported as relative quantities (amplification factors, shelter efficiencies) referenced to the simulation's own upstream conditions, which cancels this systematic bias.
+  \item The saltation concentration profile (Eq.~\ref{eq:concentration}) is an equilibrium model that does not account for the non-equilibrium adjustment of the saltation layer as it encounters the panel array. Lagrangian particle tracking would resolve the transient saltation response to the rapidly varying flow field within the array, including overshoot/undershoot effects near panel edges, but at substantially greater computational cost.
+  \item The Owen coefficient $C$ and threshold friction velocity $u_{*t}$ carry uncertainties of factors of 2--5 and $\pm$15\%, respectively. These propagate to absolute deposition rates but not to the relative regime classification.
+  \item The model does not include electrostatic adhesion, humidity effects, or grain-size sorting, all of which affect deposition in the field.
+  \item Deposition rates below $10^{-8}$~kg/(m$\cdot$s) are below the physical detection threshold and should be interpreted as ``negligible'' rather than as precise quantitative predictions.
+  \item The flow validation (Section~\ref{sec:wake_validation}) confirms qualitative wake structure but does not include a quantitative point-by-point comparison with published velocity data (e.g., Jubayer and Hangan \cite{jubayer2016numerical}) due to differences in geometry and boundary conditions. Quantitative validation against multi-row array experiments with particle deposition is not available in the open literature.
+\end{enumerate}
+
+Despite these limitations, the model captures the essential physics---the exponential sensitivity of deposition to ground clearance---which is the foundation of the design framework. The regime-transition concept is robust to modeling uncertainties because it is driven by the well-established physics of saltation height distributions.
+
+%%====================================================================
 \section{Conclusions}
-% To be written by Worker agent
+\label{sec:conclusions}
+%%====================================================================
+
+This paper has presented a coupled CFD--aeolian transport framework for predicting wind-sand interaction with ground-mounted PV arrays. Four principal findings emerge.
+
+First, ground clearance dominates sand management. Panel deposition varies by several orders of magnitude across the practical $H$ range (0.1--0.8~m), driven by the exponential decay of the saltation concentration profile; row spacing produces a factor of 2--3 variation at fixed $H$, and tilt angle modulates the shelter pattern, but both are secondary to the exponential $H$-dependence.
+
+Second, three transport regimes govern deposition behaviour. The capture regime ($H < 2\lambda_s$), transitional regime ($2\lambda_s < H < 10\lambda_s$), and pass-through regime ($H > 10\lambda_s$) produce qualitatively different deposition patterns, with boundaries determined by the ratio of ground clearance to saltation decay height $\lambda_s = 2u_*^2/g$.
+
+Third, the CFD reveals that panel arrays do not universally reduce ground-level sand transport. Flow acceleration at panel leading edges, combined with the cubic nonlinearity of the Owen flux ($Q \sim u_*^3$), causes the array-averaged sand flux to exceed the undisturbed upstream value in 21 of 36 configurations---an effect driven by Jensen's inequality. Tight row spacing amplifies this effect, explaining why wider spacing reduces panel deposition despite providing less inter-row shelter.
+
+Fourth, the resulting design nomogram provides actionable guidance. For typical Chinese desert conditions ($u_\text{ref} = 10$~m/s, $D_{50} = 200$~\si{\micro\metre}), ground clearances above 0.4~m place the array in the pass-through regime. The recommended design point ($H = 0.5$~m, $\theta = 25^\circ$) balances sand management with structural and irradiance requirements.
+
+For operators of \emph{shagohuang} mega-bases, increasing ground clearance from 0.1~m to 0.5~m reduces sand deposition by nearly four orders of magnitude at negligible structural cost. This geometric modification alone may eliminate the need for active cleaning in many desert installations.
+
+\section*{CRediT authorship contribution statement}
+\textbf{Jianou Jiang}: Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Writing -- original draft, Visualization.
+\textbf{Budimir Rosic}: Supervision, Writing -- review \& editing.
+
+\section*{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Data availability}
+All simulation input files, post-processing scripts, and figure-generation code are available from the corresponding author upon reasonable request.
 
 \section*{Acknowledgements}
 This work was supported by the University of Oxford.

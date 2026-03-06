@@ -1,0 +1,63 @@
+============================================
+REVERSE RUNNER: Cases 36 → 1
+============================================
+
+RUN (reverse): case_36_H0.8_T35_S6Hp
+  Done in 1244s
+RUN (reverse): case_35_H0.8_T35_S4Hp
+  Done in 799s
+RUN (reverse): case_34_H0.8_T35_S2Hp
+  Done in 1680s
+RUN (reverse): case_33_H0.8_T25_S6Hp
+  Done in 858s
+RUN (reverse): case_32_H0.8_T25_S4Hp
+  Done in 819s
+RUN (reverse): case_31_H0.8_T25_S2Hp
+  Done in 810s
+RUN (reverse): case_30_H0.8_T15_S6Hp
+  Done in 904s
+RUN (reverse): case_29_H0.8_T15_S4Hp
+  Done in 876s
+RUN (reverse): case_28_H0.8_T15_S2Hp
+  Done in 996s
+RUN (reverse): case_27_H0.5_T35_S6Hp
+  Done in 1459s
+RUN (reverse): case_26_H0.5_T35_S4Hp
+  Done in 1083s
+RUN (reverse): case_25_H0.5_T35_S2Hp
+  Done in 878s
+RUN (reverse): case_24_H0.5_T25_S6Hp
+  Done in 1213s
+RUN (reverse): case_23_H0.5_T25_S4Hp
+  Done in 717s
+RUN (reverse): case_22_H0.5_T25_S2Hp
+  Done in 491s
+RUN (reverse): case_21_H0.5_T15_S6Hp
+  Done in 618s
+RUN (reverse): case_20_H0.5_T15_S4Hp
+  Done in 520s
+RUN (reverse): case_19_H0.5_T15_S2Hp
+  Done in 418s
+RUN (reverse): case_18_H0.3_T35_S6Hp
+  Done in 1095s
+SKIP: case_17_H0.3_T35_S4Hp (already done or running)
+SKIP: case_16_H0.3_T35_S2Hp (already done or running)
+SKIP: case_15_H0.3_T25_S6Hp (already done or running)
+SKIP: case_14_H0.3_T25_S4Hp (already done or running)
+SKIP: case_13_H0.3_T25_S2Hp (already done or running)
+SKIP: case_12_H0.3_T15_S6Hp (already done or running)
+SKIP: case_11_H0.3_T15_S4Hp (already done or running)
+SKIP: case_10_H0.3_T15_S2Hp (already done or running)
+SKIP: case_09_H0.1_T35_S6Hp (already done or running)
+SKIP: case_08_H0.1_T35_S4Hp (already done or running)
+SKIP: case_07_H0.1_T35_S2Hp (already done or running)
+SKIP: case_06_H0.1_T25_S6Hp (already done or running)
+SKIP: case_05_H0.1_T25_S4Hp (already done or running)
+SKIP: case_04_H0.1_T25_S2Hp (already done or running)
+SKIP: case_03_H0.1_T15_S6Hp (already done or running)
+SKIP: case_02_H0.1_T15_S4Hp (already done or running)
+SKIP: case_01_H0.1_T15_S2Hp (already done or running)
+
+============================================
+REVERSE RUNNER COMPLETE
+============================================

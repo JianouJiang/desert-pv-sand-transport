@@ -5,3 +5,12 @@ __pycache__/
 page_images/
 watcher_state.json
 .running_experiment.json
+
+# OpenFOAM case data (too large for git)
+codes/openfoam/parametric_study/
+codes/openfoam/abl_precursor/
+*.aux
+*.bbl
+*.blg
+*.out
+*.spl
