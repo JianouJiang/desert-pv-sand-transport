@@ -160,3 +160,39 @@ New reviews (`JUDGE_003_REVIEW.md`, `STATISTICIAN_003_REVIEW.md`) reiterate seve
 - Editorial action: keep claims calibrated (e.g., “screening-level guidance” vs “quantitative prediction”) until at least one validation comparison is shown.
 
 Score note: I am keeping **7/10** for writing/LaTeX/reference hygiene as of the current draft; however, figure/narrative clarity will remain capped until (i) convergence reporting is made audit-friendly, (ii) the negative-shelter terminology is repaired, and (iii) at least one uncertainty band is plotted.
+
+---
+
+## Addendum (2026-03-06, latest): STATISTICIAN\_004 + current compiled artifacts
+
+Since the prior addenda, a new review (`STATISTICIAN_004_REVIEW.md`, timestamped 2026-03-06) reports substantial progress: restarts to 3000 iterations, explicit negative-shelter discussion (Jensen/Venturi), S-effect mechanism prose, and an uncertainty band on the deposition-vs-clearance plot. I verified that the *current* working tree reflects these improvements in `manuscript/main.tex`, and that `manuscript/main.pdf`/`manuscript/main.log` were regenerated on **2026-03-06 06:57 UTC** (PDF now **31 pages**).
+
+### What is now clearly resolved (presentation-facing)
+
+- **Negative shelter efficiency is now acknowledged and explained**: Section titled “Flow amplification, spacing effects, and the Jensen inequality” is present and reads clearly; the abstract and conclusions also reflect this.
+- **Row-spacing effect direction now has mechanism prose** (no longer reads like a sign error).
+- **At least one key uncertainty visualization exists** (per STAT\_004, C-range band on the deposition-vs-clearance figure). This addresses the “text-only uncertainty” optics problem flagged in JUDGE\_002/JUDGE\_003.
+
+### Remaining editor-facing issues to fix (still)
+
+1) **“Shelter efficiency” naming still clashes with negative values**  
+Even with the new Section 7.3, the term “shelter efficiency” is still used for a quantity that can be negative by design. Strong recommendation remains: switch to a sign-agnostic term (e.g., “flux modification ratio” or “array flux amplification factor”) and keep “shelter” for strictly attenuating quantities.
+
+2) **Case-level reliability disclosures** (reader trust)  
+STAT\_004 reports: 30/36 formally converged; 6 tight-spacing cases did not; case\_34 stagnates at `p_init ~ O(10^{-3})`; case\_01 appears to have a postprocessing/time-directory integrity issue. These are not just “methods”: they affect how a reviewer interprets the extremes shown in heatmaps/summary metrics. Ensure the manuscript explicitly flags:
+  - the set of non-formally-converged cases (and how treated in figures), and
+  - the special status of case\_34 if it drives an extremum.
+
+3) **Persistent `hyperref` PDF-string warnings**  
+`manuscript/main.log` still shows repeated “Token not allowed in a PDF string (Unicode)” warnings. Clean these for submission polish; they typically come from author/corresponding-author macros entering bookmarks.
+
+4) **Elsevier front-matter completeness still missing**  
+I still do not see:
+  - **CRediT author contribution statement**, or
+  - **Highlights** / **Graphical abstract** environments.  
+Whether these are mandatory depends on Solar Energy’s submission route, but if required, their absence is an avoidable desk-reject risk.
+
+5) **Layout report inconsistencies**  
+`manuscript/layout_report.md` generated **2026-03-06 06:59 UTC** reports **32 pages**, while `pdfinfo manuscript/main.pdf` reports **31 pages**. The tool also continues to treat ~90%+ page “white%” as CRITICAL, which appears miscalibrated for papers. Use the report for *relative*/specific defect detection, not the headline CRITICAL count, until the metric is corrected.
+
+Updated score (presentation only, current compiled state): 7.5/10
